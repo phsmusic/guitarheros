@@ -7,17 +7,23 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #1a0f24; color: #e0e0e0; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 20px; }
         .container { width: 100%; max-width: 1100px; text-align: center; }
-        .panel { background: #2d1a3d; padding: 20px; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); margin-bottom: 20px; border: 1px solid #4a2b63; }
-        .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .panel { background: #2d1a3d; padding: 25px; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.5); margin-bottom: 20px; border: 1px solid #4a2b63; }
+        
+        /* Restored Drag & Drop Styling */
+        #drop-zone { border: 2px dashed #4a2b63; border-radius: 12px; padding: 30px; margin-bottom: 20px; cursor: pointer; transition: 0.3s; background: rgba(255, 255, 255, 0.03); }
+        #drop-zone.highlight { border-color: #03dac6; background: rgba(3, 218, 198, 0.1); }
+        
+        .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
         .tool-card { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; border: 1px solid #4a2b63; }
-        #drop-zone { border: 2px dashed #4a2b63; border-radius: 12px; padding: 20px; margin-bottom: 15px; cursor: pointer; transition: 0.3s; }
-        #drop-zone:hover { background: rgba(255, 255, 255, 0.1); }
+        
         .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; position: relative; }
         video { width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 12px; border: 2px solid #4a2b63; }
-        button { padding: 10px 20px; font-size: 14px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; margin: 5px; transition: 0.2s; }
+        
+        button { padding: 12px 24px; font-size: 14px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; margin: 5px; transition: 0.2s; }
         .btn-primary { background: #bb86fc; color: #1a0f24; }
         .btn-record { background: #03dac6; color: #000; }
         .btn-stop { background: #cf6679; color: white; }
+        
         #note-display { font-size: 36px; font-weight: bold; color: #03dac6; margin: 5px 0; }
         #tuner-meter { width: 100%; height: 12px; background: #1a0f24; border-radius: 6px; position: relative; overflow: hidden; border: 1px solid #4a2b63; }
         #tuner-needle { width: 6px; height: 100%; background: #bb86fc; position: absolute; left: 50%; transition: left 0.15s ease-out; box-shadow: 0 0 8px #bb86fc; }
@@ -25,7 +31,7 @@
         .metro-active { background: #03dac6; box-shadow: 0 0 10px #03dac6; }
         #countdown { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 100px; color: #03dac6; font-weight: bold; z-index: 100; display: none; }
         #upload { display: none; }
-        .privacy-note { margin-top: 50px; padding: 20px; font-size: 12px; color: #888; border-top: 1px solid #2d1a3d; max-width: 600px; line-height: 1.5; text-align: center; }
+        .privacy-note { margin-top: 50px; padding: 20px; font-size: 12px; color: #888; border-top: 1px solid #2d1a3d; max-width: 600px; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -35,7 +41,7 @@
 
     <div class="tool-grid">
         <div class="tool-card">
-            <small>Chromatic Tuner (Smoothed)</small>
+            <small>Chromatic Tuner</small>
             <div id="note-display">--</div>
             <div id="tuner-meter"><div id="tuner-needle"></div></div>
             <button class="btn-primary" style="font-size:12px; margin-top:10px;" onclick="startTuner()">Enable Tuner</button>
@@ -49,162 +55,12 @@
     </div>
 
     <div class="panel">
-        <div id="drop-zone" onclick="document.getElementById('upload').click()">
-            <p id="drop-text" style="margin: 0;"><strong>Step 1:</strong> Drag Reference Video Here or Click</p>
+        <div id="drop-zone">
+            <p id="drop-text" style="margin: 0;"><strong>Step 1:</strong> Drag Reference Video Here or Click to Browse</p>
             <input type="file" id="upload" accept="video/*">
         </div>
+        
         <button id="setupBtn" class="btn-primary">Enable Camera & Mic</button>
         <button id="startBtn" class="btn-record" style="display:none;">Start Recording</button>
         <button id="stopBtn" class="btn-stop" style="display:none;">Stop</button>
-        <button id="downloadBtn" class="btn-primary" style="display:none; background:#3700b3; color:white;">Download Recording</button>
-        <button id="retakeBtn" class="btn-primary" style="display:none; background:#666; color:white;">Retake</button>
-    </div>
-
-    <div class="video-grid">
-        <div id="countdown">3</div>
-        <video id="refVideo"></video>
-        <video id="webcam" autoplay muted playsinline></video>
-    </div>
-
-    <footer class="privacy-note">
-        <strong>Privacy Note:</strong> This tool processes video and audio entirely within your own web browser. No video data, audio, or personal information is ever uploaded to GitHub or any external server. Your recording is temporarily stored in your computer's memory and is permanently deleted as soon as you close this browser tab.
-    </footer>
-</div>
-
-<script>
-    const refVideo = document.getElementById('refVideo');
-    const webcam = document.getElementById('webcam');
-    const setupBtn = document.getElementById('setupBtn');
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const retakeBtn = document.getElementById('retakeBtn');
-    const fileInput = document.getElementById('upload');
-
-    let recorder, chunks = [], activeStream = null, audioCtx, metroRunning = false, nextTickTime = 0;
-    let pitchHistory = [];
-
-    fileInput.onchange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            refVideo.src = URL.createObjectURL(file);
-            document.getElementById('drop-text').innerHTML = "<b>Loaded:</b> " + file.name;
-        }
-    };
-
-    setupBtn.onclick = async () => {
-        activeStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        webcam.srcObject = activeStream;
-        setupBtn.style.display = 'none';
-        startBtn.style.display = 'inline-block';
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    };
-
-    startBtn.onclick = () => {
-        if(!refVideo.src) return alert("Please load a reference video!");
-        startBtn.style.display = 'none';
-        let count = 3;
-        const cd = document.getElementById('countdown');
-        cd.style.display = 'block'; cd.innerText = count;
-        const t = setInterval(() => {
-            count--;
-            if(count > 0) cd.innerText = count;
-            else { clearInterval(t); cd.style.display = 'none'; startRecord(); }
-        }, 1000);
-    };
-
-    function startRecord() {
-        chunks = [];
-        recorder = new MediaRecorder(activeStream);
-        recorder.ondataavailable = e => chunks.push(e.data);
-        recorder.onstop = () => {
-            const blob = new Blob(chunks, { type: 'video/webm' });
-            const url = URL.createObjectURL(blob);
-            downloadBtn.onclick = () => { const a = document.createElement('a'); a.href = url; a.download = "Guitar1_Practice.webm"; a.click(); };
-            downloadBtn.style.display = 'inline-block';
-            retakeBtn.style.display = 'inline-block';
-        };
-        recorder.start();
-        refVideo.play();
-        stopBtn.style.display = 'inline-block';
-    }
-
-    stopBtn.onclick = () => { recorder.stop(); refVideo.pause(); stopBtn.style.display = 'none'; };
-    retakeBtn.onclick = () => { window.location.reload(); };
-
-    // --- STEADY CLICK METRONOME ---
-    function toggleMetronome() {
-        if (!audioCtx) audioCtx = new AudioContext();
-        metroRunning = !metroRunning;
-        document.getElementById('metroBtn').innerText = metroRunning ? "Stop Metronome" : "Start Metronome";
-        if (metroRunning) {
-            nextTickTime = audioCtx.currentTime;
-            scheduler();
-        }
-    }
-
-    function scheduler() {
-        while (nextTickTime < audioCtx.currentTime + 0.1) {
-            playTick(nextTickTime);
-            nextTickTime += 60.0 / document.getElementById('bpm').value;
-        }
-        if (metroRunning) window.setTimeout(scheduler, 25);
-    }
-
-    function playTick(time) {
-        const osc = audioCtx.createOscillator();
-        const envelope = audioCtx.createGain();
-        osc.frequency.value = 440; // Constant steady tone
-        envelope.gain.exponentialRampToValueAtTime(1, time);
-        envelope.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
-        osc.connect(envelope);
-        envelope.connect(audioCtx.destination);
-        osc.start(time);
-        osc.stop(time + 0.05);
-        
-        window.setTimeout(() => {
-            document.getElementById('metro-light').classList.add('metro-active');
-            setTimeout(() => document.getElementById('metro-light').classList.remove('metro-active'), 50);
-        }, (time - audioCtx.currentTime) * 1000);
-    }
-
-    // --- SMOOTHED TUNER ---
-    async function startTuner() {
-        if(!activeStream) return alert("Enable Camera/Mic first!");
-        const analyser = audioCtx.createAnalyser();
-        audioCtx.createMediaStreamSource(activeStream).connect(analyser);
-        const buffer = new Float32Array(analyser.fftSize);
-        const notes = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
-
-        function update() {
-            analyser.getFloatTimeDomainData(buffer);
-            let freq = autoCorrelate(buffer, audioCtx.sampleRate);
-            if (freq !== -1) {
-                let val = 12 * (Math.log(freq / 440) / Math.log(2)) + 69;
-                pitchHistory.push(val);
-                if(pitchHistory.length > 12) pitchHistory.shift();
-                let avg = pitchHistory.reduce((a,b) => a+b) / pitchHistory.length;
-                let noteIndex = Math.round(avg) % 12;
-                let diff = (avg - Math.round(avg)) * 100;
-                document.getElementById('note-display').innerText = notes[noteIndex];
-                document.getElementById('tuner-needle').style.left = (50 + diff/1.5) + "%";
-            }
-            requestAnimationFrame(update);
-        }
-        update();
-    }
-
-    function autoCorrelate(buf, sampleRate) {
-        let SIZE = buf.length, rms = 0;
-        for (let i=0;i<SIZE;i++) rms += buf[i]*buf[i];
-        if (Math.sqrt(rms/SIZE)<0.01) return -1;
-        let c = new Float32Array(SIZE);
-        for (let i=0; i<SIZE; i++) for (let j=0; j<SIZE-i; j++) c[i] = c[i] + buf[j]*buf[j+i];
-        let d=0; while (c[d]>c[d+1]) d++;
-        let maxval=-1, maxpos=-1;
-        for (let i=d; i<SIZE; i++) if (c[i]>maxval) { maxval=c[i]; maxpos=i; }
-        return sampleRate/maxpos;
-    }
-</script>
-</body>
-</html>
+        <button id="downloadBtn" class="btn-primary" style="display:none; background
